@@ -28,20 +28,59 @@
 - Added `Profile v1`:
   - User profile page (`/profile`)
   - Update display name
-  - Add/remove profile picture URL
+  - Add/remove profile picture upload with crop
   - Profile API endpoint (`/api/profile`)
   - Profile links in header and dashboard
   - Better login error messages for restricted accounts:
     - Deactivated account message
     - Blocked account message
+- Added `Catalog + Listings v1`:
+  - Prisma models:
+    - `Category`
+    - `Game`
+    - `GameCategory` (allowed category mapping per game)
+    - `GameOffering` (one per game+category with custom display label)
+    - `Listing` with `ListingStatus`
+  - Admin catalog module (`/admin/catalog`):
+    - Create/delete categories
+    - Create/delete games
+    - Assign and update allowed categories per game
+    - Auto-create offering labels for each selected game-category pair
+    - Rename offering labels per category (e.g. `PUBG Mobile UC`)
+    - Backend enforcement via `/api/admin/catalog` (admin-only)
+  - Seller listings module:
+    - My listings page (`/dashboard/listings`)
+    - Create listing page (`/dashboard/listings/new`)
+    - Listing create API (`/api/listings`)
+    - Strict backend validation that listing uses valid game offering
+- Added `Search v2`:
+  - Real-time header autocomplete search (desktop + mobile)
+  - Suggestions include:
+    - offering labels only (e.g. `8 Ball Pool Coins`, `PUBG Mobile UC`)
+  - Search suggestions API: `/api/search/suggestions`
+  - Removed generic game page; browsing now uses pair pages only (`/games/[gameId]/[categoryId]`)
+  - Games search page now returns offering cards only (no standalone game cards)
+  - Acronym matching support (e.g. `gta` -> `Grand Theft Auto`)
+- Added `Game Icons v1`:
+  - `Game.icon` field in Prisma
+  - Admin can upload icon while creating game
+  - Admin can replace/remove icon per game
+  - Uploaded icons stored under `/public/uploads/games`
+  - Game icons shown in:
+    - realtime search suggestions
+    - game-category search cards (`/games`)
+    - game-category page header (`/games/[gameId]/[categoryId]`)
 
 ## Current routes
 - `/` home
 - `/login` login
 - `/register` register
 - `/dashboard` protected page
+- `/dashboard/listings` seller listings
+- `/dashboard/listings/new` create listing
 - `/profile` user profile
 - `/admin` admin dashboard
+- `/admin/catalog` admin games/categories management
 - `/admin/users` admin users management
 - `/admin/listings` admin listings placeholder
 - `/admin/orders` admin orders placeholder
@@ -49,9 +88,14 @@
 - `/api/register` register endpoint
 - `/api/profile` user profile update
 - `/api/admin/users/[userId]` admin moderation actions
+- `/api/admin/catalog` admin catalog actions
+- `/api/listings` listing creation
+- `/api/search/suggestions` realtime game/category suggestions
+- `/games/[gameId]/[categoryId]` game-category listing page
 
 ## Next suggested increment
-- Listings module:
-  - listing schema
-  - listing create page
-  - listing grid with basic filters
+- Buyer browse flow:
+  - public listing grid page
+  - filters by game/category/price
+  - listing detail page
+  - seller profile badge and trust stats shell

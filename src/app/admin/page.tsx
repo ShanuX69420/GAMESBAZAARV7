@@ -10,6 +10,12 @@ const moduleCards = [
     cta: "Open Users",
   },
   {
+    title: "Catalog",
+    description: "Create categories and games, then map valid game-category pairs.",
+    href: "/admin/catalog",
+    cta: "Open Catalog",
+  },
+  {
     title: "Listings",
     description: "Review and moderate marketplace listings.",
     href: "/admin/listings",
@@ -26,12 +32,14 @@ const moduleCards = [
 export default async function AdminIndexPage() {
   const adminUser = await requireAdminUser();
 
-  const [totalUsers, blockedUsers, inactiveUsers, auditEvents] =
+  const [totalUsers, blockedUsers, inactiveUsers, auditEvents, totalCategories, totalGames] =
     await prisma.$transaction([
       prisma.user.count(),
       prisma.user.count({ where: { isBlocked: true } }),
       prisma.user.count({ where: { isActive: false } }),
       prisma.adminActionLog.count(),
+      prisma.category.count(),
+      prisma.game.count(),
     ]);
 
   return (
@@ -57,7 +65,7 @@ export default async function AdminIndexPage() {
           </div>
         </header>
 
-        <section className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           <article className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               Total Users
@@ -82,9 +90,21 @@ export default async function AdminIndexPage() {
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">{auditEvents}</p>
           </article>
+          <article className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              Categories
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{totalCategories}</p>
+          </article>
+          <article className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              Games
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{totalGames}</p>
+          </article>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {moduleCards.map((card) => (
             <article
               key={card.title}

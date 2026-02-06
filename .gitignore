@@ -49,3 +49,5 @@ next-env.d.ts
 # runtime user uploads
 /public/uploads/profiles/*
 !/public/uploads/profiles/.gitkeep
+/public/uploads/games/*
+!/public/uploads/games/.gitkeep

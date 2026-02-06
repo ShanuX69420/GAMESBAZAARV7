@@ -1,36 +1,10 @@
 import { AccountMenu } from "@/components/account-menu";
+import { HeaderSearch } from "@/components/header-search";
 import { getCurrentUser } from "@/lib/current-user";
 import { MobileCategoriesMenu } from "@/components/mobile-categories-menu";
 import Link from "next/link";
 
 const navLinks = ["Currency", "Accounts", "Top Ups", "Items", "Boosting"];
-
-function SearchInput({ mobile = false }: { mobile?: boolean }) {
-  return (
-    <label
-      className={`flex items-center rounded-lg border border-border bg-white px-3 py-2 ${
-        mobile ? "w-full" : "w-full lg:max-w-[420px] lg:flex-1"
-      }`}
-    >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="h-4 w-4 text-muted"
-        aria-hidden="true"
-      >
-        <circle cx="11" cy="11" r="7" />
-        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-      <input
-        type="text"
-        placeholder="Search GamesBazaar"
-        className="ml-2 w-full bg-transparent text-sm text-foreground outline-none"
-      />
-    </label>
-  );
-}
 
 export async function SiteHeader() {
   const currentUser = await getCurrentUser();
@@ -74,7 +48,7 @@ export async function SiteHeader() {
           </div>
 
           <div className="mt-3">
-            <SearchInput mobile />
+            <HeaderSearch mobile />
           </div>
         </div>
 
@@ -103,7 +77,7 @@ export async function SiteHeader() {
             ))}
           </nav>
 
-          <SearchInput />
+          <HeaderSearch />
 
           <div className="ml-auto flex items-center gap-2">
             {currentUser ? (

@@ -21,6 +21,13 @@ export default async function DashboardPage() {
         </p>
 
         <div className="mt-6 flex flex-wrap gap-2">
+          <Link
+            href="/dashboard/listings"
+            className="inline-flex rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-surface"
+          >
+            My Listings
+          </Link>
+
           {currentUser.role === "ADMIN" ? (
             <Link
               href="/admin"
