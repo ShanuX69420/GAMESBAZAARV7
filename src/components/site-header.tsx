@@ -5,6 +5,7 @@ import {
   HeaderCategoryMenus,
 } from "@/components/header-category-menus";
 import { HeaderSearch } from "@/components/header-search";
+import { HeaderMessagesButton } from "@/components/header-messages-button";
 import { PresenceHeartbeat } from "@/components/presence-heartbeat";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
@@ -191,23 +192,14 @@ export async function SiteHeader() {
             <div className="flex items-center gap-2">
               {currentUser ? (
                 <>
-                  <Link
-                    href="/messages"
+                  <HeaderMessagesButton
+                    currentUserId={currentUser.id}
+                    href="/messages?view=list"
                     className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-foreground transition hover:bg-surface"
-                    aria-label="Messages"
+                    iconClassName="h-4 w-4"
+                    ariaLabel="Messages"
                     title="Messages"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="h-4 w-4"
-                      aria-hidden="true"
-                    >
-                      <path d="M4 6.5a2.5 2.5 0 0 1 2.5-2.5h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16H9l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5z" />
-                    </svg>
-                  </Link>
+                  />
                   <AccountMenu
                     name={currentUser.name}
                     email={currentUser.email}
@@ -253,23 +245,14 @@ export async function SiteHeader() {
           <div className="ml-auto flex items-center gap-2">
             {currentUser ? (
               <>
-                <Link
-                  href="/messages"
+                <HeaderMessagesButton
+                  currentUserId={currentUser.id}
+                  href="/messages?view=list"
                   className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border text-foreground transition hover:bg-surface"
-                  aria-label="Messages"
+                  iconClassName="h-5 w-5"
+                  ariaLabel="Messages"
                   title="Messages"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="h-5 w-5"
-                    aria-hidden="true"
-                  >
-                    <path d="M4 6.5a2.5 2.5 0 0 1 2.5-2.5h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16H9l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5z" />
-                  </svg>
-                </Link>
+                />
                 <AccountMenu
                   name={currentUser.name}
                   email={currentUser.email}

@@ -5,6 +5,7 @@ type MessagesPageProps = {
   searchParams: Promise<{
     conversation?: string;
     user?: string;
+    view?: string;
   }>;
 };
 
@@ -24,12 +25,19 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
       ? resolvedSearchParams.user.trim()
       : undefined;
 
+  const initialMobileView =
+    typeof resolvedSearchParams.view === "string" &&
+    resolvedSearchParams.view.trim().toLowerCase() === "list"
+      ? "list"
+      : undefined;
+
   return (
     <MessagesPageClient
       currentUserId={currentUser.id}
+      currentUserName={currentUser.name ?? "User"}
       initialConversationId={initialConversationId}
       initialRecipientUserId={initialRecipientUserId}
+      initialMobileView={initialMobileView}
     />
   );
 }
-

@@ -32,6 +32,7 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
           id: true,
           name: true,
           image: true,
+          lastSeenAt: true,
         },
       },
       game: {
@@ -191,8 +192,13 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
 
             <ListingMessageBox
               currentUserId={currentUser?.id ?? null}
+              currentUserName={currentUser?.name ?? "User"}
               sellerId={listing.sellerId}
               sellerName={listing.seller.name}
+              sellerImage={listing.seller.image}
+              sellerLastSeenAt={
+                listing.seller.lastSeenAt ? listing.seller.lastSeenAt.toISOString() : null
+              }
             />
           </div>
         </section>

@@ -30,9 +30,15 @@ export type ChatSocketServerEvents = {
     isOnline: boolean;
     lastSeenAt: string;
   }) => void;
+  "presence:snapshot": (payload: {
+    onlineUserIds: string[];
+    emittedAt: string;
+  }) => void;
 };
 
-export type ChatSocketClientEvents = Record<string, never>;
+export type ChatSocketClientEvents = {
+  "presence:snapshot:request": () => void;
+};
 
 type ChatSocket = Socket<ChatSocketServerEvents, ChatSocketClientEvents>;
 

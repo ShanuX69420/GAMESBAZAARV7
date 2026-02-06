@@ -27,9 +27,7 @@ export function PresenceHeartbeat({ enabled }: PresenceHeartbeatProps) {
     void sendPresenceHeartbeat();
 
     const heartbeatInterval = window.setInterval(() => {
-      if (document.visibilityState === "visible") {
-        void sendPresenceHeartbeat();
-      }
+      void sendPresenceHeartbeat();
     }, 25000);
 
     const handleFocus = () => {
@@ -37,9 +35,7 @@ export function PresenceHeartbeat({ enabled }: PresenceHeartbeatProps) {
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        void sendPresenceHeartbeat();
-      }
+      void sendPresenceHeartbeat();
     };
 
     window.addEventListener("focus", handleFocus);

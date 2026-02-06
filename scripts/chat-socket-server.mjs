@@ -14,6 +14,13 @@ if (!WS_AUTH_SECRET || WS_AUTH_SECRET.length < 8) {
 
 const activeConnectionCountByUserId = new Map();
 
+function emitPresenceSnapshot(target) {
+  target.emit("presence:snapshot", {
+    onlineUserIds: Array.from(activeConnectionCountByUserId.keys()),
+    emittedAt: new Date().toISOString(),
+  });
+}
+
 function base64UrlDecode(value) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
   const padding = normalized.length % 4 === 0 ? 0 : 4 - (normalized.length % 4);
@@ -298,6 +305,12 @@ io.on("connection", (socket) => {
       lastSeenAt: new Date().toISOString(),
     });
   }
+
+  emitPresenceSnapshot(socket);
+
+  socket.on("presence:snapshot:request", () => {
+    emitPresenceSnapshot(socket);
+  });
 
   socket.on("disconnect", () => {
     const previousCount = activeConnectionCountByUserId.get(userId) ?? 0;

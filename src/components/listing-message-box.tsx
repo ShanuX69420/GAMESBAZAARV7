@@ -1,13 +1,17 @@
 "use client";
 
+import { formatLastSeen, isUserOnline } from "@/lib/chat";
 import { getMessagesSocket, type ChatSocketMessage } from "@/lib/messages-socket-client";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type ListingMessageBoxProps = {
   currentUserId: string | null;
+  currentUserName: string | null;
   sellerId: string;
   sellerName: string;
+  sellerImage: string | null;
+  sellerLastSeenAt: string | null;
 };
 
 type ConversationMessage = {
@@ -15,6 +19,11 @@ type ConversationMessage = {
   body: string;
   createdAt: string;
   senderId: string;
+  sender?: {
+    id: string;
+    name: string;
+    image: string | null;
+  };
 };
 
 function upsertMessageById<TMessage extends { id: string }>(
@@ -33,8 +42,11 @@ function upsertMessageById<TMessage extends { id: string }>(
 
 export function ListingMessageBox({
   currentUserId,
+  currentUserName,
   sellerId,
   sellerName,
+  sellerImage,
+  sellerLastSeenAt,
 }: ListingMessageBoxProps) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
@@ -42,12 +54,47 @@ export function ListingMessageBox({
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [, setPresenceTick] = useState(0);
+  const [liveSellerPresence, setLiveSellerPresence] = useState<{
+    isOnline: boolean;
+    lastSeenAt: string | null;
+  }>({
+    isOnline: sellerLastSeenAt ? isUserOnline(new Date(sellerLastSeenAt)) : false,
+    lastSeenAt: sellerLastSeenAt,
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const canChat = useMemo(
     () => Boolean(currentUserId && currentUserId !== sellerId),
     [currentUserId, sellerId],
   );
+  const ownDisplayName = (currentUserName?.trim() || "User");
+
+  const computedSellerOnline = (() => {
+    if (liveSellerPresence.isOnline) {
+      return true;
+    }
+
+    const dateValue = liveSellerPresence.lastSeenAt
+      ? new Date(liveSellerPresence.lastSeenAt)
+      : null;
+
+    if (!dateValue || Number.isNaN(dateValue.getTime())) {
+      return false;
+    }
+
+    return isUserOnline(dateValue);
+  })();
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setPresenceTick((value) => value + 1);
+    }, 15000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     if (!canChat) {
@@ -163,6 +210,7 @@ export function ListingMessageBox({
             body: event.message.body,
             createdAt: event.message.createdAt,
             senderId: event.message.senderId,
+            sender: event.message.sender,
           };
 
           setMessages((previous) => upsertMessageById(previous, nextMessage));
@@ -174,9 +222,45 @@ export function ListingMessageBox({
           }
         };
 
+        const handlePresenceChanged = (event: {
+          userId: string;
+          isOnline: boolean;
+          lastSeenAt: string;
+        }) => {
+          if (event.userId !== sellerId) {
+            return;
+          }
+
+          setLiveSellerPresence({
+            isOnline: event.isOnline,
+            lastSeenAt: event.lastSeenAt,
+          });
+        };
+
+        const handlePresenceSnapshot = (event: {
+          onlineUserIds: string[];
+          emittedAt: string;
+        }) => {
+          const isSellerOnline = Array.isArray(event.onlineUserIds)
+            ? event.onlineUserIds.includes(sellerId)
+            : false;
+
+          setLiveSellerPresence((previous) => ({
+            isOnline: isSellerOnline,
+            lastSeenAt: isSellerOnline
+              ? previous.lastSeenAt ?? event.emittedAt
+              : previous.lastSeenAt,
+          }));
+        };
+
         socket.on("message:created", handleMessageCreated);
+        socket.on("presence:changed", handlePresenceChanged);
+        socket.on("presence:snapshot", handlePresenceSnapshot);
+        socket.emit("presence:snapshot:request");
         cleanupSocketListeners = () => {
           socket.off("message:created", handleMessageCreated);
+          socket.off("presence:changed", handlePresenceChanged);
+          socket.off("presence:snapshot", handlePresenceSnapshot);
         };
       } catch {
         // Listing chat still works with manual sends if socket server is unavailable.
@@ -189,7 +273,7 @@ export function ListingMessageBox({
         cleanupSocketListeners();
       }
     };
-  }, [canChat, conversationId, currentUserId]);
+  }, [canChat, conversationId, currentUserId, sellerId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -254,7 +338,26 @@ export function ListingMessageBox({
   return (
     <article className="rounded-xl border border-border bg-card shadow-sm">
       <div className="border-b border-border px-4 py-3">
-        <p className="text-sm font-semibold text-foreground">Chat with {sellerName}</p>
+        <div className="flex items-center gap-3">
+          {sellerImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={sellerImage}
+              alt={`${sellerName} profile`}
+              className="h-9 w-9 rounded-full border border-border object-cover"
+            />
+          ) : (
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-xs font-semibold text-muted">
+              {sellerName.slice(0, 1).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <p className="text-sm font-semibold text-foreground">{sellerName}</p>
+            <p className={`text-xs ${computedSellerOnline ? "text-emerald-600" : "text-muted"}`}>
+              {computedSellerOnline ? "Online" : formatLastSeen(liveSellerPresence.lastSeenAt)}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="h-56 overflow-y-auto px-4 py-3">
@@ -263,20 +366,56 @@ export function ListingMessageBox({
           <p className="text-sm text-muted">Start the conversation with this seller.</p>
         ) : null}
 
-        <div className="space-y-2">
-          {messages.map((message) => {
+        <div className="space-y-0.5">
+          {messages.map((message, index) => {
             const isOwn = message.senderId === currentUserId;
+            const senderName = isOwn ? ownDisplayName : message.sender?.name || sellerName;
+            const previousMessage = index > 0 ? messages[index - 1] : null;
+            const currentMessageTime = new Date(message.createdAt).getTime();
+            const previousMessageTime = previousMessage
+              ? new Date(previousMessage.createdAt).getTime()
+              : Number.NaN;
+            const hasFiveMinuteGap =
+              !previousMessage ||
+              !Number.isFinite(currentMessageTime) ||
+              !Number.isFinite(previousMessageTime) ||
+              currentMessageTime - previousMessageTime >= 5 * 60 * 1000;
+            const shouldShowSender =
+              !previousMessage ||
+              previousMessage.senderId !== message.senderId ||
+              hasFiveMinuteGap;
+            const shouldShowTimestamp = shouldShowSender;
+
             return (
               <div
                 key={message.id}
-                className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+                className={`rounded-md px-2 ${
+                  shouldShowSender ? "pt-2 pb-1.5" : "pt-0.5 pb-1.5"
+                }`}
               >
-                <div
-                  className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                    isOwn ? "bg-accent text-white" : "bg-surface text-foreground"
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    {shouldShowSender ? (
+                      <p className="text-[15px] font-bold leading-tight text-foreground">
+                        {senderName}
+                      </p>
+                    ) : null}
+                    <p
+                      className={`whitespace-pre-wrap break-words text-sm text-foreground ${
+                        shouldShowSender ? "mt-0.5" : "mt-0"
+                      }`}
+                    >
+                      {message.body}
+                    </p>
+                  </div>
+                  {shouldShowTimestamp ? (
+                    <p className="shrink-0 text-[11px] text-muted">
+                      {new Date(message.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             );
