@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "make-admin": "node scripts/make-admin.mjs"
+    "make-admin": "node scripts/make-admin.mjs",
+    "seed:listings": "node scripts/seed-listings.mjs"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.3.0",

@@ -1,13 +1,171 @@
 import { AccountMenu } from "@/components/account-menu";
+import {
+  HeaderCategoryMenuItem,
+  HeaderCategoryMenuSection,
+  HeaderCategoryMenus,
+} from "@/components/header-category-menus";
 import { HeaderSearch } from "@/components/header-search";
 import { getCurrentUser } from "@/lib/current-user";
+import { prisma } from "@/lib/prisma";
 import { MobileCategoriesMenu } from "@/components/mobile-categories-menu";
 import Link from "next/link";
 
-const navLinks = ["Currency", "Accounts", "Top Ups", "Items", "Boosting"];
+type HeaderMenuKey = "currency" | "accounts" | "topups" | "items" | "boosting";
+
+type HeaderMenuConfig = {
+  key: HeaderMenuKey;
+  label: string;
+  align: "left" | "center" | "right";
+};
+
+const desktopMenus: HeaderMenuConfig[] = [
+  { key: "currency", label: "Currency", align: "left" },
+  { key: "accounts", label: "Accounts", align: "left" },
+  { key: "topups", label: "Top Ups", align: "center" },
+  { key: "items", label: "Items", align: "center" },
+  { key: "boosting", label: "Boosting", align: "right" },
+];
+
+function normalize(value: string) {
+  return value.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function detectMenuBucket(
+  formatType: "ACCOUNT" | "CURRENCY",
+  categoryName: string,
+): HeaderMenuKey {
+  if (formatType === "CURRENCY") {
+    return "currency";
+  }
+
+  const normalizedCategory = normalize(categoryName);
+
+  if (normalizedCategory.includes("boost")) {
+    return "boosting";
+  }
+
+  if (
+    normalizedCategory.includes("top up") ||
+    normalizedCategory.includes("topup") ||
+    normalizedCategory.includes("recharge")
+  ) {
+    return "topups";
+  }
+
+  if (
+    normalizedCategory.includes("item") ||
+    normalizedCategory.includes("key")
+  ) {
+    return "items";
+  }
+
+  if (normalizedCategory.includes("account")) {
+    return "accounts";
+  }
+
+  return "accounts";
+}
 
 export async function SiteHeader() {
-  const currentUser = await getCurrentUser();
+  const [currentUser, offerings] = await Promise.all([
+    getCurrentUser(),
+    prisma.gameOffering.findMany({
+      orderBy: [{ name: "asc" }],
+      take: 1000,
+      select: {
+        id: true,
+        name: true,
+        formatType: true,
+        gameId: true,
+        categoryId: true,
+        category: {
+          select: {
+            name: true,
+          },
+        },
+        game: {
+          select: {
+            icon: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  const offeringIds = offerings.map((offering) => offering.id);
+
+  const listingCounts =
+    offeringIds.length === 0
+      ? []
+      : await prisma.listing.groupBy({
+          by: ["offeringId"],
+          where: {
+            status: "ACTIVE",
+            offeringId: { in: offeringIds },
+          },
+          _count: { _all: true },
+        });
+
+  const listingCountMap = new Map(
+    listingCounts.map((entry) => [entry.offeringId ?? "", entry._count._all]),
+  );
+
+  const allMenuEntries = offerings
+    .map((offering) => ({
+      bucket: detectMenuBucket(offering.formatType, offering.category.name),
+      id: offering.id,
+      label: offering.name,
+      href: `/games/${offering.gameId}/${offering.categoryId}`,
+      gameIcon: offering.game.icon,
+      activeListings: listingCountMap.get(offering.id) ?? 0,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  const menuData = new Map<
+    HeaderMenuKey,
+    {
+      popularItems: HeaderCategoryMenuItem[];
+      allItems: HeaderCategoryMenuItem[];
+    }
+  >();
+
+  for (const menu of desktopMenus) {
+    const menuEntries = allMenuEntries.filter((entry) => entry.bucket === menu.key);
+    const allItems = menuEntries.map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      href: entry.href,
+      gameIcon: entry.gameIcon,
+    }));
+
+    const popularItems = [...menuEntries]
+      .filter((entry) => entry.activeListings > 0)
+      .sort((a, b) => {
+        if (b.activeListings !== a.activeListings) {
+          return b.activeListings - a.activeListings;
+        }
+        return a.label.localeCompare(b.label);
+      })
+      .slice(0, 12)
+      .map((entry) => ({
+        id: entry.id,
+        label: entry.label,
+        href: entry.href,
+        gameIcon: entry.gameIcon,
+      }));
+
+    menuData.set(menu.key, {
+      popularItems,
+      allItems,
+    });
+  }
+
+  const desktopMenuSections: HeaderCategoryMenuSection[] = desktopMenus.map((menu) => ({
+    key: menu.key,
+    label: menu.label,
+    popularItems: menuData.get(menu.key)?.popularItems ?? [],
+    allItems: menuData.get(menu.key)?.allItems ?? [],
+  }));
 
   return (
     <header className="border-b border-border bg-card/95 backdrop-blur">
@@ -16,7 +174,7 @@ export async function SiteHeader() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <MobileCategoriesMenu
-                links={navLinks}
+                sections={desktopMenuSections}
                 buttonClassName="inline-flex h-9 w-9 items-center justify-center rounded-lg text-foreground transition hover:bg-surface"
               />
               <Link
@@ -66,15 +224,7 @@ export async function SiteHeader() {
           </div>
 
           <nav className="hidden gap-1 lg:flex lg:items-center">
-            {navLinks.map((link) => (
-              <button
-                key={link}
-                type="button"
-                className="rounded-md px-3 py-1.5 text-[15px] font-semibold text-foreground transition hover:bg-surface"
-              >
-                {link}
-              </button>
-            ))}
+            <HeaderCategoryMenus sections={desktopMenuSections} />
           </nav>
 
           <HeaderSearch />

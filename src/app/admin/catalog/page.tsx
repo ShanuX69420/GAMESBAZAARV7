@@ -1,13 +1,26 @@
+import { AdminCatalogForm } from "@/components/admin-catalog-form";
 import { requireAdminUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
+import { CurrencyMode, OfferingFormatType } from "@prisma/client";
 import Link from "next/link";
 
 type AdminCatalogPageProps = {
   searchParams: Promise<{
     message?: string;
     tone?: string;
+    gameSearch?: string;
   }>;
 };
+
+const offeringFormatOptions: Array<{ value: OfferingFormatType; label: string }> = [
+  { value: OfferingFormatType.ACCOUNT, label: "Account" },
+  { value: OfferingFormatType.CURRENCY, label: "Currency" },
+];
+
+const currencyModeOptions: Array<{ value: CurrencyMode; label: string }> = [
+  { value: CurrencyMode.OPEN_QUANTITY, label: "Open Quantity" },
+  { value: CurrencyMode.FIXED_PACKAGES, label: "Fixed Packages" },
+];
 
 export default async function AdminCatalogPage({
   searchParams,
@@ -27,6 +40,15 @@ export default async function AdminCatalogPage({
       },
     }),
     prisma.game.findMany({
+      where:
+        typeof resolvedSearchParams.gameSearch === "string" &&
+        resolvedSearchParams.gameSearch.trim().length > 0
+          ? {
+              name: {
+                contains: resolvedSearchParams.gameSearch.trim(),
+              },
+            }
+          : undefined,
       orderBy: { name: "asc" },
       select: {
         id: true,
@@ -52,6 +74,16 @@ export default async function AdminCatalogPage({
             id: true,
             categoryId: true,
             name: true,
+            formatType: true,
+            currencyMode: true,
+            currencyUnitLabel: true,
+            packageOptions: {
+              select: {
+                id: true,
+                amount: true,
+              },
+              orderBy: { amount: "asc" },
+            },
           },
           orderBy: [{ category: { name: "asc" } }, { name: "asc" }],
         },
@@ -63,6 +95,10 @@ export default async function AdminCatalogPage({
   const message =
     typeof resolvedSearchParams.message === "string"
       ? resolvedSearchParams.message
+      : "";
+  const gameSearch =
+    typeof resolvedSearchParams.gameSearch === "string"
+      ? resolvedSearchParams.gameSearch.trim()
       : "";
 
   return (
@@ -117,11 +153,7 @@ export default async function AdminCatalogPage({
               Create categories like Accounts, Keys, Top Up, Boosting.
             </p>
 
-            <form
-              className="mt-4 flex flex-wrap gap-2"
-              action="/api/admin/catalog"
-              method="post"
-            >
+            <AdminCatalogForm className="mt-4 flex flex-wrap gap-2">
               <input type="hidden" name="intent" value="create_category" />
               <input
                 type="text"
@@ -138,7 +170,7 @@ export default async function AdminCatalogPage({
               >
                 Add Category
               </button>
-            </form>
+            </AdminCatalogForm>
 
             <ul className="mt-4 space-y-2">
               {categories.length === 0 ? (
@@ -158,7 +190,7 @@ export default async function AdminCatalogPage({
                       Listings using this category: {category._count.listings}
                     </p>
                   </div>
-                  <form action="/api/admin/catalog" method="post">
+                  <AdminCatalogForm>
                     <input type="hidden" name="intent" value="delete_category" />
                     <input type="hidden" name="categoryId" value={category.id} />
                     <button
@@ -167,7 +199,7 @@ export default async function AdminCatalogPage({
                     >
                       Delete
                     </button>
-                  </form>
+                  </AdminCatalogForm>
                 </li>
               ))}
             </ul>
@@ -180,10 +212,8 @@ export default async function AdminCatalogPage({
               for each selected category.
             </p>
 
-            <form
+            <AdminCatalogForm
               className="mt-4 space-y-3"
-              action="/api/admin/catalog"
-              method="post"
               encType="multipart/form-data"
             >
               <input type="hidden" name="intent" value="create_game" />
@@ -243,22 +273,59 @@ export default async function AdminCatalogPage({
               >
                 Add Game
               </button>
-            </form>
+            </AdminCatalogForm>
           </article>
         </section>
 
         <section className="mt-4 rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">
-            Game Category Assignments
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            Update allowed categories per game. Sellers can only list using these pairs.
-          </p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                Game Category Assignments
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                Update allowed categories per game. Sellers can only list using these pairs.
+              </p>
+            </div>
+
+            <form method="get" className="flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                name="gameSearch"
+                defaultValue={gameSearch}
+                placeholder="Search games..."
+                className="min-w-[220px] rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent"
+              />
+              <button
+                type="submit"
+                className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong"
+              >
+                Search
+              </button>
+              {gameSearch ? (
+                <Link
+                  href="/admin/catalog"
+                  className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-foreground transition hover:bg-surface"
+                >
+                  Clear
+                </Link>
+              ) : null}
+            </form>
+          </div>
+
+          {gameSearch ? (
+            <p className="mt-3 text-sm text-muted">
+              Search: <span className="font-semibold text-foreground">{gameSearch}</span> (
+              {games.length} result{games.length === 1 ? "" : "s"})
+            </p>
+          ) : null}
 
           <div className="mt-4 grid gap-3">
             {games.length === 0 ? (
               <article className="rounded-lg border border-border bg-surface p-4 text-sm text-muted">
-                No games yet.
+                {gameSearch
+                  ? "No games found for this search."
+                  : "No games yet."}
               </article>
             ) : null}
 
@@ -296,7 +363,7 @@ export default async function AdminCatalogPage({
                       </div>
                     </div>
 
-                    <form action="/api/admin/catalog" method="post">
+                    <AdminCatalogForm>
                       <input type="hidden" name="intent" value="delete_game" />
                       <input type="hidden" name="gameId" value={game.id} />
                       <button
@@ -305,13 +372,11 @@ export default async function AdminCatalogPage({
                       >
                         Delete Game
                       </button>
-                    </form>
+                    </AdminCatalogForm>
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <form
-                      action="/api/admin/catalog"
-                      method="post"
+                    <AdminCatalogForm
                       encType="multipart/form-data"
                       className="flex flex-wrap items-center gap-2"
                     >
@@ -329,10 +394,10 @@ export default async function AdminCatalogPage({
                       >
                         {game.icon ? "Replace Icon" : "Upload Icon"}
                       </button>
-                    </form>
+                    </AdminCatalogForm>
 
                     {game.icon ? (
-                      <form action="/api/admin/catalog" method="post">
+                      <AdminCatalogForm>
                         <input type="hidden" name="intent" value="remove_game_icon" />
                         <input type="hidden" name="gameId" value={game.id} />
                         <button
@@ -341,11 +406,11 @@ export default async function AdminCatalogPage({
                         >
                           Remove Icon
                         </button>
-                      </form>
+                      </AdminCatalogForm>
                     ) : null}
                   </div>
 
-                  <form className="mt-3" action="/api/admin/catalog" method="post">
+                  <AdminCatalogForm className="mt-3">
                     <input type="hidden" name="intent" value="update_game_categories" />
                     <input type="hidden" name="gameId" value={game.id} />
 
@@ -373,15 +438,14 @@ export default async function AdminCatalogPage({
                     >
                       Save Categories
                     </button>
-                  </form>
+                  </AdminCatalogForm>
 
                   <div className="mt-4 rounded-lg border border-border bg-white p-3">
                     <h4 className="text-xs font-semibold uppercase tracking-wide text-muted">
                       Offering Labels
                     </h4>
                     <p className="mt-1 text-xs text-muted">
-                      Rename labels like &quot;PUBG Mobile UC&quot; or
-                      &quot;8 Ball Pool Coins&quot;.
+                      Rename labels and pick listing format per offering.
                     </p>
 
                     <div className="mt-3 grid gap-2">
@@ -401,38 +465,169 @@ export default async function AdminCatalogPage({
                         }
 
                         return (
-                          <form
+                          <div
                             key={offering.id}
-                            action="/api/admin/catalog"
-                            method="post"
-                            className="grid gap-2 rounded-md border border-border bg-surface p-2 sm:grid-cols-[150px_1fr_auto]"
+                            className="rounded-md border border-border bg-surface p-2"
                           >
-                            <input
-                              type="hidden"
-                              name="intent"
-                              value="update_game_offering_name"
-                            />
-                            <input type="hidden" name="offeringId" value={offering.id} />
+                            <AdminCatalogForm className="space-y-2">
+                              <input type="hidden" name="intent" value="update_game_offering" />
+                              <input type="hidden" name="offeringId" value={offering.id} />
 
-                            <span className="self-center text-xs font-semibold text-muted">
-                              {link.category.name}
-                            </span>
-                            <input
-                              type="text"
-                              name="name"
-                              required
-                              minLength={2}
-                              maxLength={120}
-                              defaultValue={offering.name}
-                              className="rounded-md border border-border bg-white px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent"
-                            />
-                            <button
-                              type="submit"
-                              className="rounded-md border border-border px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-white"
-                            >
-                              Save Label
-                            </button>
-                          </form>
+                              <div className="grid gap-2 sm:grid-cols-[140px_1fr_150px_auto]">
+                                <span className="self-center text-xs font-semibold text-muted">
+                                  {link.category.name}
+                                </span>
+                                <input
+                                  type="text"
+                                  name="name"
+                                  required
+                                  minLength={2}
+                                  maxLength={120}
+                                  defaultValue={offering.name}
+                                  className="rounded-md border border-border bg-white px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent"
+                                />
+                                <select
+                                  name="formatType"
+                                  defaultValue={offering.formatType}
+                                  className="rounded-md border border-border bg-white px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent"
+                                >
+                                  {offeringFormatOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="submit"
+                                  className="rounded-md border border-border px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-white"
+                                >
+                                  Save
+                                </button>
+                              </div>
+
+                              {offering.formatType === OfferingFormatType.CURRENCY ? (
+                                <div className="grid gap-2 sm:grid-cols-[190px_1fr]">
+                                  <label className="block">
+                                    <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
+                                      Currency Mode
+                                    </span>
+                                    <select
+                                      name="currencyMode"
+                                      defaultValue={offering.currencyMode}
+                                      className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent"
+                                    >
+                                      {currencyModeOptions.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+
+                                  <label className="block">
+                                    <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
+                                      Unit Label
+                                    </span>
+                                    <input
+                                      type="text"
+                                      name="currencyUnitLabel"
+                                      maxLength={24}
+                                      defaultValue={offering.currencyUnitLabel ?? "Unit"}
+                                      placeholder="UC"
+                                      className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent"
+                                    />
+                                  </label>
+                                </div>
+                              ) : (
+                                <>
+                                  <input
+                                    type="hidden"
+                                    name="currencyMode"
+                                    value={CurrencyMode.OPEN_QUANTITY}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="currencyUnitLabel"
+                                    value=""
+                                  />
+                                </>
+                              )}
+                            </AdminCatalogForm>
+
+                            {offering.formatType === OfferingFormatType.CURRENCY &&
+                            offering.currencyMode === CurrencyMode.FIXED_PACKAGES ? (
+                              <div className="mt-3 rounded-md border border-border bg-white p-3">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                                  Fixed Package Amounts
+                                </p>
+
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {offering.packageOptions.length === 0 ? (
+                                    <span className="text-xs text-muted">
+                                      No package amounts yet.
+                                    </span>
+                                  ) : null}
+
+                                  {offering.packageOptions.map((option) => (
+                                    <AdminCatalogForm
+                                      key={option.id}
+                                      className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-1"
+                                    >
+                                      <input
+                                        type="hidden"
+                                        name="intent"
+                                        value="remove_offering_package_option"
+                                      />
+                                      <input
+                                        type="hidden"
+                                        name="packageOptionId"
+                                        value={option.id}
+                                      />
+                                      <span className="text-xs font-semibold text-foreground">
+                                        {option.amount.toLocaleString()}{" "}
+                                        {offering.currencyUnitLabel ?? "Unit"}
+                                      </span>
+                                      <button
+                                        type="submit"
+                                        className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-red-600 transition hover:bg-red-50"
+                                        title="Remove package amount"
+                                      >
+                                        X
+                                      </button>
+                                    </AdminCatalogForm>
+                                  ))}
+                                </div>
+
+                                <AdminCatalogForm className="mt-3 flex flex-wrap gap-2">
+                                  <input
+                                    type="hidden"
+                                    name="intent"
+                                    value="add_offering_package_option"
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="offeringId"
+                                    value={offering.id}
+                                  />
+                                  <input
+                                    type="number"
+                                    name="amount"
+                                    required
+                                    min={1}
+                                    step={1}
+                                    placeholder="Amount (e.g. 60)"
+                                    className="min-w-[180px] rounded-md border border-border bg-white px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent"
+                                  />
+                                  <button
+                                    type="submit"
+                                    className="rounded-md border border-border px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-surface"
+                                  >
+                                    Add Amount
+                                  </button>
+                                </AdminCatalogForm>
+                              </div>
+                            ) : null}
+                          </div>
                         );
                       })}
                     </div>

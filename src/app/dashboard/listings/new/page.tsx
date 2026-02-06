@@ -16,6 +16,16 @@ export default async function NewListingPage() {
         select: {
           id: true,
           name: true,
+          formatType: true,
+          currencyMode: true,
+          currencyUnitLabel: true,
+          packageOptions: {
+            select: {
+              id: true,
+              amount: true,
+            },
+            orderBy: { amount: "asc" },
+          },
           category: {
             select: {
               name: true,
@@ -33,6 +43,10 @@ export default async function NewListingPage() {
       offerings: game.offerings.map((offering) => ({
         id: offering.id,
         name: offering.name,
+        formatType: offering.formatType,
+        currencyMode: offering.currencyMode,
+        currencyUnitLabel: offering.currencyUnitLabel,
+        packageOptions: offering.packageOptions,
         categoryName: offering.category.name,
       })),
     }))

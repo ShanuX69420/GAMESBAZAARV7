@@ -1,6 +1,7 @@
 import { getAdminForApi } from "@/lib/current-user";
 import { deleteLocalGameImage, saveGameImage } from "@/lib/game-image";
 import { prisma } from "@/lib/prisma";
+import { CurrencyMode, OfferingFormatType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -36,9 +37,21 @@ const removeGameIconSchema = z.object({
   gameId: z.string().trim().min(1),
 });
 
-const updateGameOfferingNameSchema = z.object({
+const updateGameOfferingSchema = z.object({
   offeringId: z.string().trim().min(1),
   name: z.string().trim().min(2).max(120),
+  formatType: z.nativeEnum(OfferingFormatType),
+  currencyMode: z.nativeEnum(CurrencyMode).optional(),
+  currencyUnitLabel: z.string().trim().max(24).optional(),
+});
+
+const addOfferingPackageOptionSchema = z.object({
+  offeringId: z.string().trim().min(1),
+  amount: z.coerce.number().int().min(1).max(1000000000),
+});
+
+const removeOfferingPackageOptionSchema = z.object({
+  packageOptionId: z.string().trim().min(1),
 });
 
 function normalizeName(value: string) {
@@ -49,7 +62,39 @@ function buildDefaultOfferingName(gameName: string, categoryName: string) {
   return `${normalizeName(gameName)} ${normalizeName(categoryName)}`;
 }
 
+function inferOfferingFormatType(categoryName: string): OfferingFormatType {
+  const normalized = normalizeName(categoryName).toLowerCase();
+
+  if (
+    normalized.includes("currency") ||
+    normalized.includes("coin") ||
+    normalized.includes("gold") ||
+    normalized.includes("cash") ||
+    normalized.includes("point") ||
+    normalized.includes("gem") ||
+    normalized.includes("diamond") ||
+    normalized.includes("top up") ||
+    normalized.includes("topup") ||
+    normalized.includes("recharge")
+  ) {
+    return OfferingFormatType.CURRENCY;
+  }
+
+  return OfferingFormatType.ACCOUNT;
+}
+
 function buildRedirect(request: Request, message: string, tone: "success" | "error") {
+  const isAjax = request.headers.get("x-gamesbazaar-ajax") === "1";
+  if (isAjax) {
+    return NextResponse.json(
+      {
+        message,
+        tone,
+      },
+      { status: tone === "error" ? 400 : 200 },
+    );
+  }
+
   const url = new URL("/admin/catalog", request.url);
   url.searchParams.set("message", message);
   url.searchParams.set("tone", tone);
@@ -59,6 +104,10 @@ function buildRedirect(request: Request, message: string, tone: "success" | "err
 export async function POST(request: Request) {
   const adminUser = await getAdminForApi();
   if (!adminUser) {
+    if (request.headers.get("x-gamesbazaar-ajax") === "1") {
+      return NextResponse.json({ message: "Unauthorized.", tone: "error" }, { status: 401 });
+    }
+
     return NextResponse.redirect(new URL("/login", request.url), { status: 303 });
   }
 
@@ -191,6 +240,9 @@ export async function POST(request: Request) {
                 gameName,
                 categoryNameMap.get(categoryId) ?? "",
               ),
+              formatType: inferOfferingFormatType(
+                categoryNameMap.get(categoryId) ?? "",
+              ),
             })),
           });
         });
@@ -303,6 +355,9 @@ export async function POST(request: Request) {
                 game.name,
                 categoryNameMap.get(categoryId) ?? "",
               ),
+              formatType: inferOfferingFormatType(
+                categoryNameMap.get(categoryId) ?? "",
+              ),
             })),
           });
         }
@@ -311,14 +366,17 @@ export async function POST(request: Request) {
       return buildRedirect(request, "Game categories updated.", "success");
     }
 
-    if (intent === "update_game_offering_name") {
-      const parsed = updateGameOfferingNameSchema.safeParse({
+    if (intent === "update_game_offering") {
+      const parsed = updateGameOfferingSchema.safeParse({
         offeringId: formData.get("offeringId"),
         name: formData.get("name"),
+        formatType: formData.get("formatType"),
+        currencyMode: formData.get("currencyMode"),
+        currencyUnitLabel: formData.get("currencyUnitLabel"),
       });
 
       if (!parsed.success) {
-        return buildRedirect(request, "Invalid offering name.", "error");
+        return buildRedirect(request, "Invalid offering settings.", "error");
       }
 
       const offering = await prisma.gameOffering.findUnique({
@@ -334,10 +392,100 @@ export async function POST(request: Request) {
         where: { id: parsed.data.offeringId },
         data: {
           name: normalizeName(parsed.data.name),
+          formatType: parsed.data.formatType,
+          currencyMode:
+            parsed.data.formatType === OfferingFormatType.CURRENCY
+              ? parsed.data.currencyMode ?? CurrencyMode.OPEN_QUANTITY
+              : CurrencyMode.OPEN_QUANTITY,
+          currencyUnitLabel:
+            parsed.data.formatType === OfferingFormatType.CURRENCY
+              ? parsed.data.currencyUnitLabel?.trim() || "Unit"
+              : null,
         },
       });
 
-      return buildRedirect(request, "Offering label updated.", "success");
+      return buildRedirect(request, "Offering updated.", "success");
+    }
+
+    if (intent === "add_offering_package_option") {
+      const parsed = addOfferingPackageOptionSchema.safeParse({
+        offeringId: formData.get("offeringId"),
+        amount: formData.get("amount"),
+      });
+
+      if (!parsed.success) {
+        return buildRedirect(request, "Invalid package amount.", "error");
+      }
+
+      const offering = await prisma.gameOffering.findUnique({
+        where: { id: parsed.data.offeringId },
+        select: {
+          id: true,
+          formatType: true,
+          currencyMode: true,
+        },
+      });
+
+      if (!offering) {
+        return buildRedirect(request, "Offering not found.", "error");
+      }
+
+      if (
+        offering.formatType !== OfferingFormatType.CURRENCY ||
+        offering.currencyMode !== CurrencyMode.FIXED_PACKAGES
+      ) {
+        return buildRedirect(
+          request,
+          "Offering must be Currency + Fixed Packages.",
+          "error",
+        );
+      }
+
+      await prisma.offeringPackageOption.create({
+        data: {
+          offeringId: offering.id,
+          amount: parsed.data.amount,
+        },
+      });
+
+      return buildRedirect(request, "Package amount added.", "success");
+    }
+
+    if (intent === "remove_offering_package_option") {
+      const parsed = removeOfferingPackageOptionSchema.safeParse({
+        packageOptionId: formData.get("packageOptionId"),
+      });
+
+      if (!parsed.success) {
+        return buildRedirect(request, "Invalid package option.", "error");
+      }
+
+      const packageOption = await prisma.offeringPackageOption.findUnique({
+        where: { id: parsed.data.packageOptionId },
+        select: { id: true },
+      });
+
+      if (!packageOption) {
+        return buildRedirect(request, "Package option not found.", "error");
+      }
+
+      const listingCount = await prisma.listing.count({
+        where: { packageOptionId: packageOption.id },
+      });
+
+      if (listingCount > 0) {
+        return buildRedirect(
+          request,
+          "Cannot remove package option with existing listings.",
+          "error",
+        );
+      }
+
+      await prisma.offeringPackageOption.delete({
+        where: { id: packageOption.id },
+      });
+
+      return buildRedirect(request, "Package amount removed.", "success");
     }
 
     if (intent === "update_game_icon") {

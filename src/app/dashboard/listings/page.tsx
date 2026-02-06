@@ -9,6 +9,16 @@ type SellerListingsPageProps = {
   }>;
 };
 
+function formatLabel(value: string) {
+  switch (value) {
+    case "CURRENCY":
+      return "Currency";
+    case "ACCOUNT":
+    default:
+      return "Account";
+  }
+}
+
 export default async function SellerListingsPage({
   searchParams,
 }: SellerListingsPageProps) {
@@ -23,10 +33,11 @@ export default async function SellerListingsPage({
       title: true,
       pricePkr: true,
       status: true,
+      deliveryTimeText: true,
       createdAt: true,
       game: { select: { name: true } },
       category: { select: { name: true } },
-      offering: { select: { name: true } },
+      offering: { select: { name: true, formatType: true } },
     },
     take: 100,
   });
@@ -100,6 +111,14 @@ export default async function SellerListingsPage({
                   <div>
                     <h2 className="text-base font-semibold text-foreground">{listing.title}</h2>
                     <p className="mt-1 text-sm text-muted">{offeringLabel}</p>
+                    <p className="mt-1 text-xs text-muted">
+                      Format: {formatLabel(listing.offering?.formatType ?? "ACCOUNT")}
+                    </p>
+                    {listing.deliveryTimeText ? (
+                      <p className="mt-1 text-xs text-muted">
+                        Delivery: {listing.deliveryTimeText}
+                      </p>
+                    ) : null}
                     <p className="mt-1 text-xs text-muted">
                       Created: {new Date(listing.createdAt).toLocaleString()}
                     </p>

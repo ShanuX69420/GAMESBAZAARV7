@@ -96,6 +96,79 @@
     - realtime search suggestions
     - game-category search cards (`/games`)
     - game-category page header (`/games/[gameId]/[categoryId]`)
+- Added `Format-Based Listings v1`:
+  - Prisma updates:
+    - `GameOffering.formatType` enum (`ACCOUNT`, `CURRENCY`)
+    - `Listing.deliveryTimeText`
+    - `Listing.formatData` JSON
+  - Admin catalog updates:
+    - Offering editor now supports both label and format type per offering
+    - New offerings infer default format from category name (accounts/currency/boosting)
+  - Seller listing creation updates:
+    - Dynamic form by offering format
+    - `ACCOUNT` form (title, price, delivery time, description)
+    - `CURRENCY` form (title, unit label, price per unit, stock, min qty, delivery time, instructions)
+  - Buyer game/offering page updates:
+    - `ACCOUNT` layout: card/grid offers
+    - `CURRENCY` layout: primary seller panel + other sellers list
+    - Currency cards show per-unit price, stock, min qty, and delivery time
+- Added `Currency Fixed Packages v1`:
+  - `GameOffering.currencyMode` (`OPEN_QUANTITY`, `FIXED_PACKAGES`)
+  - `GameOffering.currencyUnitLabel`
+  - `OfferingPackageOption` model for admin-defined package amounts
+  - `Listing.packageOptionId` for fixed package listings
+  - Admin catalog:
+    - Set currency mode per offering
+    - Set unit label per offering
+    - Add/remove fixed package amounts (e.g. `60`, `325`, `660` UC)
+  - Seller listing creation:
+    - Open Quantity mode: seller sets stock + min qty + price per unit
+    - Fixed Packages mode: seller must pick admin package amount + set package price
+  - Buyer offering page:
+    - Fixed package amount cards with package switching
+    - Primary seller box for selected package
+    - Other sellers list for selected package
+- Added `Demo Listing Seed v1`:
+  - Script: `npm run seed:listings`
+  - Creates demo sellers and credentials for quick UI testing
+  - Seeds offerings and listings for:
+    - Account listings
+    - Currency open quantity listings
+    - Currency fixed package listings (with package amount options)
+  - Adds one hidden listing example for admin moderation view
+- Added `Header Mega Menus v2`:
+  - Desktop hover dropdown on all main header categories:
+    - `Currency`
+    - `Accounts`
+    - `Top Ups`
+    - `Items`
+    - `Boosting`
+  - Left panel: popular offerings for that hovered category
+  - Right panel: searchable all offerings list for the hovered category
+  - Right panel list is scrollable
+  - All items link directly to offering pages (`/games/[gameId]/[categoryId]`)
+- Added `Mobile Category Explorer v1`:
+  - Mobile categories drawer now opens category detail views
+  - Category detail includes:
+    - search box
+    - popular games list
+    - all games list
+  - Both lists link directly to offering pages
+- Updated `Open Quantity Listing UI v2`:
+  - Cleaner two-column layout for primary seller + checkout panel
+  - Added interactive quantity selector (`-` / input / `+`)
+  - Live total price update based on selected quantity
+  - Improved "Other sellers" rows with stock/min qty/delivery/price columns
+- Updated `Listing Title Rules v1`:
+  - `ACCOUNT` listings still require manual title input
+  - `CURRENCY` listings now auto-generate title server-side
+  - Currency title input removed from seller listing form
+- Updated `Delivery Presets + Instant v1`:
+  - Listing form now uses fixed delivery time presets (no free text)
+  - Backend now validates delivery preset keys strictly
+  - Added `Instant delivery` option
+  - `Instant delivery` is only allowed for Accounts/Gift Cards categories
+  - Shared delivery-rule helpers added in `src/lib/listing-delivery.ts`
 
 ## Current routes
 - `/` home
@@ -108,7 +181,7 @@
 - `/admin` admin dashboard
 - `/admin/catalog` admin games/categories management
 - `/admin/users` admin users management
-- `/admin/listings` admin listings placeholder
+- `/admin/listings` admin listings moderation
 - `/admin/orders` admin orders placeholder
 - `/api/auth/[...nextauth]` auth endpoints
 - `/api/register` register endpoint
