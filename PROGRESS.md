@@ -53,6 +53,32 @@
     - Create listing page (`/dashboard/listings/new`)
     - Listing create API (`/api/listings`)
     - Strict backend validation that listing uses valid game offering
+- Added `Admin Listings Moderation v1`:
+  - Listing status expansion:
+    - `DRAFT`
+    - `ACTIVE`
+    - `PAUSED`
+    - `HIDDEN_BY_ADMIN`
+    - `REMOVED_BY_ADMIN`
+  - Listing moderation fields:
+    - `moderatedByAdminId`
+    - `moderatedAt`
+    - `moderationReason`
+  - Listing moderation audit model:
+    - `ListingModerationLog`
+    - action, previous status, next status, reason, actor, timestamp
+  - Admin listings module (`/admin/listings`):
+    - Search by listing ID/title/seller/game/offering
+    - Status filter
+    - Moderation actions with mandatory reason:
+      - hide
+      - remove
+      - restore
+      - pause
+      - unpause
+    - Recent moderation history per listing
+  - Admin listing moderation API:
+    - `/api/admin/listings/[listingId]`
 - Added `Search v2`:
   - Real-time header autocomplete search (desktop + mobile)
   - Suggestions include:
@@ -89,13 +115,14 @@
 - `/api/profile` user profile update
 - `/api/admin/users/[userId]` admin moderation actions
 - `/api/admin/catalog` admin catalog actions
+- `/api/admin/listings/[listingId]` admin listing moderation actions
 - `/api/listings` listing creation
 - `/api/search/suggestions` realtime game/category suggestions
 - `/games/[gameId]/[categoryId]` game-category listing page
 
 ## Next suggested increment
-- Buyer browse flow:
-  - public listing grid page
-  - filters by game/category/price
-  - listing detail page
-  - seller profile badge and trust stats shell
+- Orders + fake wallet flow:
+  - wallet ledger + transaction model
+  - buy flow with atomic balance update
+  - buyer/seller order pages
+  - admin orders moderation

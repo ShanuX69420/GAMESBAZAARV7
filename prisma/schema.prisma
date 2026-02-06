@@ -24,7 +24,9 @@ model User {
   updatedAt             DateTime         @updatedAt
   actionsPerformed      AdminActionLog[] @relation("AdminActionActor")
   actionsReceived       AdminActionLog[] @relation("AdminActionTarget")
+  listingModerationLogs ListingModerationLog[] @relation("ListingModerationActor")
   listings              Listing[]
+  moderatedListings     Listing[]        @relation("ListingModerator")
 }
 
 enum Role {
@@ -110,6 +112,9 @@ model Listing {
   gameId       String
   categoryId   String
   offeringId   String?
+  moderatedByAdminId String?
+  moderatedAt   DateTime?
+  moderationReason String?
   title        String
   description  String?
   pricePkr     Int
@@ -117,13 +122,16 @@ model Listing {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   seller       User          @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  moderatedByAdmin User?     @relation("ListingModerator", fields: [moderatedByAdminId], references: [id], onDelete: SetNull)
   game         Game          @relation(fields: [gameId], references: [id], onDelete: Restrict)
   category     Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   offering     GameOffering? @relation(fields: [offeringId], references: [id], onDelete: SetNull)
+  moderationLogs ListingModerationLog[]
 
   @@index([sellerId, createdAt(sort: Desc)])
   @@index([gameId, categoryId])
   @@index([offeringId])
+  @@index([moderatedByAdminId, moderatedAt(sort: Desc)])
   @@index([status, createdAt(sort: Desc)])
 }
 
@@ -131,4 +139,30 @@ enum ListingStatus {
   DRAFT
   ACTIVE
   PAUSED
+  HIDDEN_BY_ADMIN
+  REMOVED_BY_ADMIN
+}
+
+model ListingModerationLog {
+  id             String                     @id @default(cuid())
+  listingId      String
+  adminId        String
+  action         ListingModerationActionType
+  reason         String
+  previousStatus ListingStatus
+  nextStatus     ListingStatus
+  createdAt      DateTime                   @default(now())
+  listing        Listing                    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  admin          User                       @relation("ListingModerationActor", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, createdAt(sort: Desc)])
+  @@index([adminId, createdAt(sort: Desc)])
+}
+
+enum ListingModerationActionType {
+  HIDE_LISTING
+  RESTORE_LISTING
+  REMOVE_LISTING
+  PAUSE_LISTING
+  UNPAUSE_LISTING
 }
