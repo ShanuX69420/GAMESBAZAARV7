@@ -32,6 +32,7 @@ model User {
   conversationsAsUserTwo Conversation[]  @relation("ConversationUserTwo")
   conversationReadStates ConversationRead[] @relation("ConversationReadUser")
   sentConversationMessages ConversationMessage[] @relation("ConversationMessageSender")
+  chatViewsLoggedAsAdmin AdminConversationViewLog[] @relation("AdminConversationViewActor")
 }
 
 enum Role {
@@ -215,11 +216,24 @@ model Conversation {
   userTwo       User                  @relation("ConversationUserTwo", fields: [userTwoId], references: [id], onDelete: Cascade)
   messages      ConversationMessage[]
   readStates    ConversationRead[]
+  adminViews    AdminConversationViewLog[]
 
   @@unique([userOneId, userTwoId])
   @@index([userOneId])
   @@index([userTwoId])
   @@index([lastMessageAt(sort: Desc)])
+}
+
+model AdminConversationViewLog {
+  id             String       @id @default(cuid())
+  adminId        String
+  conversationId String
+  viewedAt       DateTime     @default(now())
+  admin          User         @relation("AdminConversationViewActor", fields: [adminId], references: [id], onDelete: Cascade)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, viewedAt(sort: Desc)])
+  @@index([adminId, viewedAt(sort: Desc)])
 }
 
 model ConversationRead {

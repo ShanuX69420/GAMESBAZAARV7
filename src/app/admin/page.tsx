@@ -27,12 +27,27 @@ const moduleCards = [
     href: "/admin/orders",
     cta: "Open Orders",
   },
+  {
+    title: "Chats",
+    description: "Read-only monitoring of user conversations with audit trail.",
+    href: "/admin/chats",
+    cta: "Open Chats",
+  },
 ];
 
 export default async function AdminIndexPage() {
   const adminUser = await requireAdminUser();
 
-  const [totalUsers, blockedUsers, inactiveUsers, auditEvents, totalCategories, totalGames] =
+  const [
+    totalUsers,
+    blockedUsers,
+    inactiveUsers,
+    auditEvents,
+    totalCategories,
+    totalGames,
+    totalConversations,
+    totalMessages,
+  ] =
     await prisma.$transaction([
       prisma.user.count(),
       prisma.user.count({ where: { isBlocked: true } }),
@@ -40,6 +55,8 @@ export default async function AdminIndexPage() {
       prisma.adminActionLog.count(),
       prisma.category.count(),
       prisma.game.count(),
+      prisma.conversation.count(),
+      prisma.conversationMessage.count(),
     ]);
 
   return (
@@ -65,7 +82,7 @@ export default async function AdminIndexPage() {
           </div>
         </header>
 
-        <section className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        <section className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-8">
           <article className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               Total Users
@@ -101,6 +118,18 @@ export default async function AdminIndexPage() {
               Games
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">{totalGames}</p>
+          </article>
+          <article className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              Conversations
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{totalConversations}</p>
+          </article>
+          <article className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              Chat Messages
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">{totalMessages}</p>
           </article>
         </section>
 
