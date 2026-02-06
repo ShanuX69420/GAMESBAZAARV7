@@ -30,3 +30,12 @@ body {
   font-family: var(--font-sans), "Segoe UI", sans-serif;
   line-height: 1.5;
 }
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

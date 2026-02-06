@@ -1,12 +1,12 @@
-import { auth } from "@/auth";
 import { LoginForm } from "@/components/login-form";
+import { getCurrentUser } from "@/lib/current-user";
 import { redirect } from "next/navigation";
 
 export default async function LoginPage() {
-  const session = await auth();
+  const currentUser = await getCurrentUser();
 
-  if (session?.user) {
-    redirect("/dashboard");
+  if (currentUser) {
+    redirect("/");
   }
 
   return <LoginForm />;

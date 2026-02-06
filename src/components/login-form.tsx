@@ -5,9 +5,21 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
 
+function mapAuthError(errorCode: string | null | undefined) {
+  if (errorCode === "ACCOUNT_DEACTIVATED") {
+    return "Your account is deactivated. Contact support to appeal.";
+  }
+
+  if (errorCode === "ACCOUNT_BLOCKED") {
+    return "Your account is blocked. Contact support to appeal.";
+  }
+
+  return "Invalid email or password.";
+}
+
 export function LoginForm() {
   const router = useRouter();
-  const callbackUrl = "/dashboard";
+  const callbackUrl = "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,7 +41,7 @@ export function LoginForm() {
     setIsLoading(false);
 
     if (!result || result.error) {
-      setErrorMessage("Invalid email or password.");
+      setErrorMessage(mapAuthError(result?.error));
       return;
     }
 
@@ -37,7 +49,7 @@ export function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen px-4 py-8 sm:px-8">
+    <div className="px-4 py-8 sm:px-8">
       <div className="mx-auto w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Login</h1>
         <p className="mt-2 text-sm text-muted">Access your GamesBazaar account.</p>

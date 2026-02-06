@@ -42,7 +42,7 @@ export function RegisterForm() {
       email,
       password,
       redirect: false,
-      callbackUrl: "/dashboard",
+      callbackUrl: "/",
     });
 
     setIsLoading(false);
@@ -52,11 +52,11 @@ export function RegisterForm() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/");
   }
 
   return (
-    <div className="min-h-screen px-4 py-8 sm:px-8">
+    <div className="px-4 py-8 sm:px-8">
       <div className="mx-auto w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           Create account
