@@ -35,8 +35,8 @@ export default async function SellerListingsPage({
       status: true,
       deliveryTimeText: true,
       createdAt: true,
-      game: { select: { name: true } },
-      category: { select: { name: true } },
+      game: { select: { id: true, name: true } },
+      category: { select: { id: true, name: true } },
       offering: { select: { name: true, formatType: true } },
     },
     take: 100,
@@ -101,6 +101,10 @@ export default async function SellerListingsPage({
           {listings.map((listing) => {
             const offeringLabel =
               listing.offering?.name ?? `${listing.game.name} ${listing.category.name}`;
+            const viewHref =
+              listing.offering?.formatType === "ACCOUNT"
+                ? `/listings/${listing.id}`
+                : `/games/${listing.game.id}/${listing.category.id}`;
 
             return (
               <article
@@ -109,7 +113,12 @@ export default async function SellerListingsPage({
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h2 className="text-base font-semibold text-foreground">{listing.title}</h2>
+                    <Link
+                      href={viewHref}
+                      className="text-base font-semibold text-foreground transition hover:text-accent"
+                    >
+                      {listing.title}
+                    </Link>
                     <p className="mt-1 text-sm text-muted">{offeringLabel}</p>
                     <p className="mt-1 text-xs text-muted">
                       Format: {formatLabel(listing.offering?.formatType ?? "ACCOUNT")}
@@ -131,6 +140,14 @@ export default async function SellerListingsPage({
                     <span className="mt-2 inline-flex rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-foreground">
                       {listing.status}
                     </span>
+                    <div className="mt-2">
+                      <Link
+                        href={viewHref}
+                        className="text-xs font-semibold text-accent transition hover:text-accent-strong"
+                      >
+                        Open listing
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </article>

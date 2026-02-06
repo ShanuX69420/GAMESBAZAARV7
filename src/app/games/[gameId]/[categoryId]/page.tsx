@@ -1,4 +1,5 @@
 import { OpenQuantityCheckoutCard } from "@/components/open-quantity-checkout-card";
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import Link from "next/link";
@@ -102,8 +103,11 @@ export default async function GameCategoryPage({
   params,
   searchParams,
 }: GameCategoryPageProps) {
-  const { gameId, categoryId } = await params;
-  const resolvedSearchParams = await searchParams;
+  const [{ gameId, categoryId }, resolvedSearchParams, currentUser] = await Promise.all([
+    params,
+    searchParams,
+    getCurrentUser(),
+  ]);
 
   const pair = await prisma.gameCategory.findUnique({
     where: {
@@ -404,6 +408,23 @@ export default async function GameCategoryPage({
                           >
                             Buy now
                           </button>
+
+                          {currentUser?.id !== primaryFixedListing.seller.id ? (
+                            <Link
+                              href={
+                                currentUser
+                                  ? `/messages?user=${primaryFixedListing.seller.id}`
+                                  : "/login"
+                              }
+                              className="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-surface"
+                            >
+                              Message seller
+                            </Link>
+                          ) : (
+                            <p className="mt-2 text-xs text-muted">
+                              This is your own listing.
+                            </p>
+                          )}
                         </>
                       ) : (
                         <p className="mt-3 text-sm text-muted">
@@ -507,6 +528,13 @@ export default async function GameCategoryPage({
                       unitLabel={primaryOpenCurrencyListing.currencyData.unitLabel}
                       minQuantity={primaryOpenCurrencyListing.currencyData.minQuantity}
                       stockAmount={primaryOpenCurrencyListing.currencyData.stockAmount}
+                      messageHref={
+                        currentUser?.id === primaryOpenCurrencyListing.seller.id
+                          ? null
+                          : currentUser
+                            ? `/messages?user=${primaryOpenCurrencyListing.seller.id}`
+                            : "/login"
+                      }
                     />
                   </div>
                 )}
@@ -586,8 +614,9 @@ export default async function GameCategoryPage({
             ) : null}
 
             {listings.map((listing) => (
-              <article
+              <Link
                 key={listing.id}
+                href={`/listings/${listing.id}`}
                 className="group rounded-xl border border-border bg-card p-4 shadow-sm transition hover:border-accent hover:shadow-md"
               >
                 <div className="min-h-6 text-xs text-muted">
@@ -628,7 +657,7 @@ export default async function GameCategoryPage({
                     {listing.deliveryTimeText ?? "Not specified"}
                   </p>
                 </div>
-              </article>
+              </Link>
             ))}
           </section>
         )}

@@ -5,6 +5,7 @@ import {
   HeaderCategoryMenus,
 } from "@/components/header-category-menus";
 import { HeaderSearch } from "@/components/header-search";
+import { PresenceHeartbeat } from "@/components/presence-heartbeat";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { MobileCategoriesMenu } from "@/components/mobile-categories-menu";
@@ -169,6 +170,7 @@ export async function SiteHeader() {
 
   return (
     <header className="border-b border-border bg-card/95 backdrop-blur">
+      <PresenceHeartbeat enabled={Boolean(currentUser)} />
       <div className="mx-auto w-full max-w-7xl px-3 py-3 sm:px-6 sm:py-4">
         <div className="lg:hidden">
           <div className="flex items-center justify-between gap-2">
@@ -188,12 +190,31 @@ export async function SiteHeader() {
 
             <div className="flex items-center gap-2">
               {currentUser ? (
-                <AccountMenu
-                  name={currentUser.name}
-                  email={currentUser.email}
-                  image={currentUser.image}
-                  isAdmin={currentUser.role === "ADMIN"}
-                />
+                <>
+                  <Link
+                    href="/messages"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-foreground transition hover:bg-surface"
+                    aria-label="Messages"
+                    title="Messages"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="h-4 w-4"
+                      aria-hidden="true"
+                    >
+                      <path d="M4 6.5a2.5 2.5 0 0 1 2.5-2.5h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16H9l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5z" />
+                    </svg>
+                  </Link>
+                  <AccountMenu
+                    name={currentUser.name}
+                    email={currentUser.email}
+                    image={currentUser.image}
+                    isAdmin={currentUser.role === "ADMIN"}
+                  />
+                </>
               ) : (
                 <Link
                   href="/login"
@@ -231,12 +252,31 @@ export async function SiteHeader() {
 
           <div className="ml-auto flex items-center gap-2">
             {currentUser ? (
-              <AccountMenu
-                name={currentUser.name}
-                email={currentUser.email}
-                image={currentUser.image}
-                isAdmin={currentUser.role === "ADMIN"}
-              />
+              <>
+                <Link
+                  href="/messages"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border text-foreground transition hover:bg-surface"
+                  aria-label="Messages"
+                  title="Messages"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="h-5 w-5"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 6.5a2.5 2.5 0 0 1 2.5-2.5h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16H9l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5z" />
+                  </svg>
+                </Link>
+                <AccountMenu
+                  name={currentUser.name}
+                  email={currentUser.email}
+                  image={currentUser.image}
+                  isAdmin={currentUser.role === "ADMIN"}
+                />
+              </>
             ) : (
               <>
                 <Link

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 type OpenQuantityCheckoutCardProps = {
@@ -7,6 +8,7 @@ type OpenQuantityCheckoutCardProps = {
   unitLabel: string;
   minQuantity: number;
   stockAmount: number;
+  messageHref?: string | null;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -32,6 +34,7 @@ export function OpenQuantityCheckoutCard({
   unitLabel,
   minQuantity,
   stockAmount,
+  messageHref,
 }: OpenQuantityCheckoutCardProps) {
   const [quantity, setQuantity] = useState(minQuantity);
 
@@ -109,6 +112,15 @@ export function OpenQuantityCheckoutCard({
       >
         PKR {totalPkr.toLocaleString()} | Buy now
       </button>
+
+      {messageHref ? (
+        <Link
+          href={messageHref}
+          className="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-surface"
+        >
+          Message seller
+        </Link>
+      ) : null}
     </article>
   );
 }

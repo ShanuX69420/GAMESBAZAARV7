@@ -169,6 +169,55 @@
   - Added `Instant delivery` option
   - `Instant delivery` is only allowed for Accounts/Gift Cards categories
   - Shared delivery-rule helpers added in `src/lib/listing-delivery.ts`
+- Added `Messaging + Presence v1`:
+  - Prisma models:
+    - `Conversation`
+    - `ConversationMessage`
+    - `ConversationRead`
+    - `User.lastSeenAt`
+  - New API routes:
+    - `GET/POST /api/messages/conversations`
+    - `GET/POST /api/messages/conversations/[conversationId]/messages`
+    - `POST /api/messages/conversations/[conversationId]/read`
+    - `POST /api/messages/presence`
+  - New messages UI:
+    - `/messages` page with:
+      - left chat list
+      - center conversation pane
+      - right user info/status panel
+    - Polling-based live updates for messages and conversation list
+    - Online/offline + last seen using heartbeat and `lastSeenAt`
+  - Header updates:
+    - Message icon in desktop + mobile header (next to profile)
+  - Listing integration:
+    - Account/item listing cards open listing detail pages (`/listings/[listingId]`)
+    - Account listing detail page now includes embedded chatbox with seller
+    - Currency/fixed-package and open-quantity buy panels now include `Message seller` action
+- Upgraded to `Messaging + Presence v2` (WebSockets):
+  - Added dedicated Socket.IO server (`scripts/chat-socket-server.mjs`)
+  - Dev workflow now starts app + socket server together:
+    - `npm run dev` runs `next dev` and websocket server concurrently
+  - Added websocket auth token route:
+    - `GET /api/messages/ws-token`
+  - Added secure internal event publisher from Next API routes to websocket server
+  - Message and conversation events are now pushed in real time (no chat polling):
+    - message created
+    - conversation upsert
+    - conversation read
+    - online/offline presence change
+  - Updated `/messages` page:
+    - removed message/conversation polling loops
+    - realtime updates via websocket events
+  - Updated listing embedded chatbox:
+    - removed message polling loop
+    - realtime message updates via websocket events
+- Updated presence accuracy (`v2.1`):
+  - Added global authenticated heartbeat component:
+    - `src/components/presence-heartbeat.tsx`
+    - mounted in header so presence updates across all pages, not only chat pages
+  - Presence API now publishes websocket `presence-changed` events immediately
+  - Messages UI online/offline now derives from `lastSeenAt` with timed re-render
+    - prevents stale "online forever" state when heartbeat stops
 
 ## Current routes
 - `/` home
